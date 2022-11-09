@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>bKash PGW</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <!-- Custom css -->
+    <style>
+        .pk-icon {
+            max-height: 24px;
+        }
+    </style>
+</head>
+<body>
+<section class="section">
+    <div class="container">
+        <div class="block">
+            <button id="bKash_button" class="button"><img src="images/bkas.svg" class="pk-icon" alt="bKash"/> Pay With bKash</button>
+        </div>
+        <div class="field">
+            <label class="label" for="output_console">Logs</label>
+            <div class="control">
+                <textarea id="output_console" class="textarea is-info" rows="10" disabled></textarea>
+            </div>
+        </div>
+
+        </div>
+    </div>
+</section>
+<script src="https://code.jquery.com/jquery-3.6.1.min.js" integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
+<script id = "myScript" src="https://scripts.sandbox.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout-sandbox.js"></script>
+<!--Custom js-->
+<script type="text/javascript">
+    let paymentID;
+
+    const bKashBtn = $("#bKash_button");
+    const outConsole = $("#output_console");
+    bKashBtn.prop('disabled', true)
+    function show_log(msg) {
+        outConsole.append("> "+msg+"\n\n");
+        outConsole.scrollTop(outConsole[0].scrollHeight);
+    }
+
+    $(document).ready(function () {
+
+        const paymentRequest = {
+            amount: '195.69',
+            intent: 'sale'
+        }
+        bKash.init({
+            paymentMode: 'checkout',
+            paymentRequest: paymentRequest,
+            createRequest: function (req) {
+                show_log('create request: ' + JSON.stringify(req))
+                show_log('processing...')
+                fetch("index.php?action=create&amount=" + paymentRequest.amount, {
+                    method: 'GET',
+                    headers: {
+                        contentType: 'application/json',
+                    }
+                }).then(resp => resp.json()).then(data => {
+                    show_log('create request response: ' + JSON.stringify(data.data))
+
+                    if (data.error){
+                        bKash.create().onError()
+                        show_log('[ERROR] create request failed')
+                    }else {
+                        paymentID = data.data.paymentID;
+                        show_log('[SUCCESS] payment id: ' + data.data.paymentID)
+                        bKash.create().onSuccess(data.data);
+                    }
+
+                }).catch(err => {
+                    show_log("[ERROR] create request failed: " +err)
+                    bKash.create().onError()
+                })
+
+            },
+            executeRequestOnAuthorization: function () {
+                show_log('execute request');
+                show_log('processing...')
+
+                fetch("index.php?action=execute&paymentID="+ paymentID, {
+                    method: 'GET',
+                    headers: {
+                        contentType: 'application/json',
+                    }
+                }).then(resp => resp.json()).then(data => {
+                    show_log('execute request response: ' + JSON.stringify(data.data));
+
+                    if (data.error){
+                        show_log('[ERROR] ' + data.data.errorMessage)
+                    }else {
+                        show_log('[SUCCESS] Payment success');
+                    }
+
+                    bKash.execute().onError();
+                    bKashBtn.prop('disabled', false)
+
+                }).catch(error => {
+                    show_log('[ERROR] execute request error');
+                    bKash.create().onError()
+                    bKashBtn.prop('disabled', false)
+                })
+            },
+            onClose: function () {
+                bKashBtn.prop('disabled', false)
+                show_log("user has clicked the close button")
+            }
+        })
+        bKashBtn.prop('disabled', false)
+
+    });
+
+</script>
+</body>
+</html>
