@@ -54,7 +54,7 @@
             createRequest: function (req) {
                 show_log('create request: ' + JSON.stringify(req))
                 show_log('processing...')
-                fetch("index.php?action=create&amount=" + paymentRequest.amount, {
+                fetch("log.php?action=create&amount=" + paymentRequest.amount, {
                     method: 'GET',
                     headers: {
                         contentType: 'application/json',
@@ -81,7 +81,7 @@
                 show_log('execute request');
                 show_log('processing...')
 
-                fetch("index.php?action=execute&paymentID="+ paymentID, {
+                fetch("log.php?action=execute&paymentID="+ paymentID, {
                     method: 'GET',
                     headers: {
                         contentType: 'application/json',
